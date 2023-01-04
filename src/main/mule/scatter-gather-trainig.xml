@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="3a01114c-9568-44fe-af80-2c73ae9eff98" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="scatter-gather-trainigFlow" doc:id="29338e23-701f-4d4b-acb1-c6d03c0d9448" >
+		<http:listener doc:name="Listener" doc:id="07af0461-35b3-4e38-b8a2-adcc28dea4e0" config-ref="HTTP_Listener_config" path="/GATHER"/>
+		<logger level="INFO" doc:name="Logger" doc:id="ebcd72e1-7e6f-45bf-8391-4c891416ab17" message="#[payload]"/>
+		<scatter-gather doc:name="Scatter-Gather" doc:id="fa07f84f-6824-48ae-b84c-dffac2fc9e47" target="outcome" maxConcurrency="1">
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="4e23cb55-28cd-44c5-8b70-ab51c64216c4" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"valid cards" :
+payload filter ((item, index) -> item.VALID == "TRUE")
+  ]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="f80032c1-a81a-4de3-9ca1-e189bdca0ef8" message="#[payload]"/>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="54ec739f-9658-40aa-b9cf-04a78829840a" />
+			</route>
+			<route >
+				<ee:transform doc:name="Transform Message" doc:id="5a718d55-c941-439d-ab1c-32f9bce39e81" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+"non valid cards" :
+payload filter ((item, index) -> item.VALID == "false")]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="929f1070-9d17-4d85-b46e-613de125837a" />
+			</route>
+		</scatter-gather>
+		<ee:transform doc:name="Transform Message" doc:id="2808b355-b1d2-490c-91c3-e9604084714b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+vars.outcome]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="19f007f0-13ff-4500-935d-ec9a695faa52" message="#[vars.outcome]"/>
+	</flow>
+</mule>
